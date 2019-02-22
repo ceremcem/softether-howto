@@ -204,6 +204,7 @@ When you are done with VPN connection, you should perform the followings to prop
 1. Delete the VPN route:
 
         sudo ip route del 93.115.92.240/32            # Where the IP is {VPN IP address}
+        sudo route del default
   
 2. Add a default route via your local gateway
 
