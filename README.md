@@ -119,7 +119,10 @@ Start configuration with:
       cat /proc/sys/net/ipv4/ip_forward
       
    > If you get “1” you can skip this step and go to the “Obtain an IP address from the VPN server” step.
-   > If not, type `echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward`. 
+   > If not, type 
+   > ```
+   > echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward
+   > ```
    
    
 2. Obtain an IP address from the VPN server:
