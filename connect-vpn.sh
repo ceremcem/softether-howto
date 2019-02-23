@@ -24,6 +24,21 @@ safe_source $cfg
 LOCAL_GATEWAY_IP="$(ip route | grep default | cut -d' ' -f 3)"
 PRODUCED_NIC_NAME="vpn_${NIC_NAME}"
 
+cleanup(){
+    echo
+    echo "Restoring previous routing table settings"
+    sudo route del default
+    sudo ip route del $SERVER_IP/32
+    sudo ip route add default via $LOCAL_GATEWAY_IP
+    echo "Disconnecting from VPN"
+    $VPN_CMD AccountDisconnect ${ACCOUNT_NAME}
+    sudo $VPN_CLIENT stop
+    echo "Current external ip: $(get_external_ip)"
+}
+
+trap cleanup EXIT
+
+
 if ! $VPN_CMD check &> /dev/null; then
     echo "INFO: vpnclient isn't running, starting client."
     sudo $VPN_CLIENT start
@@ -61,26 +76,15 @@ fi
 # Set up the routing table
 echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward > /dev/null
 echo "Requesting IP with dhclient:"
-sudo dhclient $PRODUCED_NIC_NAME
+#sudo dhclient -r # <- this command ruins the connection
+sudo timeout 20s dhclient $PRODUCED_NIC_NAME
+[[ $? -eq 0 ]] || { echo "Failed to get DHCP response"; exit 5; }
 
 echo "Altering routing table to use VPN server as gateway"
 sudo ip route add $SERVER_IP/32 via $LOCAL_GATEWAY_IP
 sudo route add default gw $VPN_GATEWAY_IP
 sudo ip route del default via $LOCAL_GATEWAY_IP
 
-cleanup(){
-    echo
-    echo "Restoring previous routing table settings"
-    sudo route del default
-    sudo ip route del $SERVER_IP/32
-    sudo ip route add default via $LOCAL_GATEWAY_IP
-    echo "Disconnecting from VPN"
-    $VPN_CMD AccountDisconnect ${ACCOUNT_NAME}
-    sudo $VPN_CLIENT stop
-    echo "Current external ip: $(get_external_ip)"
-}
-
-trap cleanup EXIT
 
 echo "-----------------------------------"
 echo "Current external ip: $(get_external_ip)"
