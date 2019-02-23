@@ -103,17 +103,27 @@ Start configuration with:
        AccountPassword hithere
        
      > and enter your VPN password for “Password” and “Confirm input”.
+     
+7. At “Specify standard or radius:” type `radius`
 
-7. Test the connection to the VPN server:
+8. Exit    
+    
+## Connecting to VPN
+
+1. Type `./vpncmd` and connect to your account:
+
+        AccountConnect cactusvpn
+
+
+
+2. Test the connection to the VPN server:
 
        AccountList
 
     > If you see `Status: Connected`, you can go to the next step.
-    
-    
-## Connecting to VPN
 
-1. Check if the IP forward is enabled on your system:
+
+3. Check if the IP forward is enabled on your system:
 
 
       cat /proc/sys/net/ipv4/ip_forward
@@ -125,7 +135,7 @@ Start configuration with:
    > ```
    
    
-2. Obtain an IP address from the VPN server:
+4. Obtain an IP address from the VPN server:
 
     1. See you have the `vpn_vpn_se` interface:
 
