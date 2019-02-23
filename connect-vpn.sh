@@ -22,10 +22,10 @@ LOCAL_GATEWAY_IP="$(ip route | grep default | cut -d' ' -f 3)"
 PRODUCED_NIC_NAME="vpn_${NIC_NAME}"
 
 # Create the NIC
-if ! ifconfig $PRODUCED_NIC_NAME &> /dev/null; then
-    $VPN_CMD NicCreate $NIC_NAME
-else
+if ifconfig $PRODUCED_NIC_NAME &> /dev/null; then
     echo "* NIC \"$PRODUCED_NIC_NAME\" seems already created."
+else
+    $VPN_CMD NicCreate $NIC_NAME
 fi
 
 # Create the account
@@ -38,7 +38,9 @@ else
         /USERNAME:${VPN_USERNAME} \
         /NICNAME:${NIC_NAME}
 
-    $VPN_CMD AccountPassword ${ACCOUNT_NAME} /PASSWORD:${VPN_PASSWORD} /TYPE:radius
+    $VPN_CMD AccountPassword ${ACCOUNT_NAME} \
+        /PASSWORD:${VPN_PASSWORD} \
+        /TYPE:radius
 fi
 
 # Connect to VPN
