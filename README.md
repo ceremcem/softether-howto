@@ -41,11 +41,15 @@ SoftEther is now compiled and it’s an executable file (vpnclient and vpncmd). 
 
 Requirements:
 
-* SoftEther server IP
-* SoftEther server port
-* Your username and password
-* The virtual hub name to connect to
-* The VPN gateway IP
+| name                                  | example value     |  where to get | 
+| ----                                  | ----              | ---           | 
+| SoftEther server IP                   | 111.111.111.111   | Ask your VPN provider |
+| SoftEther server port                 | 443               | Ask your VPN provider | 
+| Your VPN username                     | myuser            | Ask your VPN provider |
+| Your VPN password                     | 1234567*          | Ask your VPN provider | 
+| The virtual hub name to connect to    | VPN               | Ask your VPN provider |
+| The VPN gateway IP                    | 192.168.30.1      | Ask your VPN provider |
+| Your local gateway IP                 | 192.168.1.1       | `ip route | grep default` |     
 
 
 ### 1. Start the SoftEther VPN client:
@@ -59,140 +63,84 @@ If you see this message: “The SoftEther VPN Client service has been started.�
 
 ### 2. Check the SoftEther VPN client installation:
 
-1. `./vpncmd`
-2. Select “3” to enter “Use of VPN Tools (certificate creation and Network Traffic Speed Test Tool)”.
-3. Type `Check`
-4. If all the checks are passed, you can go to the next step.
-5. Press “Ctrl” + “C” or “Ctrl” + “D” to exit.
-
-### 3. Set up SoftEther VPN client account
-
-Start configuration with:
-
 ```
-./vpncmd
+./vpncmd localhost /tools /cmd check
 ```
 
-1. Select “2. Management of VPN Client”.
-2. Do not enter any addresses at “Hostname of IP Address of Destination” and press “Enter” to connect to the localhost.
+If all the checks are passed, you can go to the next step.
 
-    > If you have error: 
-    > * Stop the VPN client with `sudo ./vpnclient stop`
-    > * Edit the configuration file (`vpn_client.config`) and set `bool AllowRemoteConfig true`. 
-    > * Start the VPN client with `sudo ./vpnclient start`
-  
-3. Create a virtual interface to connect to the VPN server. In the SoftEther VPN configuration type:
 
-       NicCreate vpn_se
+### 3. Set up SoftEther VPN client and account
 
-4. Create an account that will use this interface for the VPN connection. Run this command in the terminal:
+> If you get "does not allow remote administration connections" error, see [this](https://github.com/SoftEtherVPN/SoftEtherVPN/issues/209#issuecomment-426397152)
 
-       AccountCreate hithere
-    
-5. Set up VPN account with your details.
+1. Create NIC:
 
-       “Destination Virtual Hub Name”: {Your hub name}
-       “Destination VPN server Host Name and Port Number”: {VPN IP address}:{SoftEther VPN Port}
-       “Connecting User Name”: {your VPN username}
-       “Used Virtual Network Adapter Name”: vpn_se
-
-    > If you get the “The command completed successfully.” message, it means that the account creation was successfully finished.
-
-6. Set up a password:
-
-       AccountPassword hithere
+       ./vpncmd localhost /client /cmd NicCreate aaa_se
        
-     > and enter your VPN password for “Password” and “Confirm input”.
-     
-7. At “Specify standard or radius:” type `radius`
+     > You should be able to see a NIC created with name `vpn_aaa_se`: 
+     > ```
+     > ifconfig vpn_aaa_se
+     > ```
 
-8. Exit    
+2. Create an account:
+
+       ./vpncmd localhost /client /cmd AccountCreate heyyou /SERVER:111.111.111.111:443 /HUB:VPN /USERNAME:myuser /NICNAME:vpn_aaa
     
+3. Set up a password for your account:
+
+       ./vpncmd localhost /client /cmd AccountPassword heyyou /PASSWORD:1234567* /TYPE:radius
+           
 ## Connecting to VPN
 
-1. Type `./vpncmd` and connect to your account:
+1. Connect to VPN with your account:
 
-        AccountConnect cactusvpn
-
-
+        ./vpncmd localhost /client /cmd AccountConnect heyyou
 
 2. Test the connection to the VPN server:
 
-       AccountList
+        ./vpncmd localhost /client /cmd AccountList
 
-    > If you see `Status: Connected`, you can go to the next step.
-
-
-3. Check if the IP forward is enabled on your system:
+   If you see `Status: Connected`, you can go to the next step.
 
 
-      cat /proc/sys/net/ipv4/ip_forward
-      
-   > If you get “1” you can skip this step and go to the “Obtain an IP address from the VPN server” step.
-   > If not, type 
-   > ```
-   > echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward
-   > ```
-   
+### Set up the routing table 
+
+1. Enable IP forward on your system:
+
+        echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward   
    
 4. Obtain an IP address from the VPN server:
 
-    1. See you have the `vpn_vpn_se` interface:
-
-      ```
-      $ ifconfig
-      ...
-      vpn_vpn_se: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
-            inet6 fe80::5cb9:78ff:fe05:9832  prefixlen 64  scopeid 0x20<link>
-            ether 5e:b9:78:05:98:32  txqueuelen 1000  (Ethernet)
-            RX packets 98620  bytes 66064239 (63.0 MiB)
-            RX errors 0  dropped 0  overruns 0  frame 0
-            TX packets 57980  bytes 5530797 (5.2 MiB)
-            TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
-      ```
-
-    2. To get an IP address from the VPN server:
+    1. To get an IP address from the VPN server:
 
         ```
-        sudo dhclient vpn_vpn_se
+        sudo dhclient vpn_aaa_se
         ```
 
-        > You should get an `ifconfig` output similar to this:
+        > You should get an output similar to this:
         > ```
-        > vpn_vpn_se: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
-        >   inet 192.168.30.11  netmask 255.255.255.0  broadcast 192.168.30.255
-        >   inet6 fe80::5cb9:78ff:fe05:9832  prefixlen 64  scopeid 0x20<link>
-        >   ether 5e:b9:78:05:98:32  txqueuelen 1000  (Ethernet)
-        >   RX packets 98620  bytes 66064239 (63.0 MiB)
-        >   RX errors 0  dropped 0  overruns 0  frame 0
-        >   TX packets 57980  bytes 5530797 (5.2 MiB)
-        >   TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+        > $ ifconfig vpn_aaa_se | grep inet | grep netmask
+        > inet 192.168.30.10  netmask 255.255.255.0  broadcast 192.168.30.255
         > ```
 
       
-    3. Add a route to the VPN server’s IP address via your old default route. In my specific case:
+    2. Add a route to the VPN server’s IP address via your old default route:
 
         ```
-        sudo ip route add 93.115.92.240/32 via 192.168.0.1
+        sudo ip route add 111.111.111.111/32 via 192.168.1.1
         sudo route add default 192.168.30.1
         ```
 
-        Where:
+    3. Delete the old default route:
 
-        * `93.115.92.240` is the `{VPN IP address}`
-        * `192.168.0.1` is the IP address of current gateway
-        * `192.168.30.1` is the IP of SoftEther VPN gateway address
+            sudo ip route del default via 192.168.1.1
 
+    4. Check your internet connection:
 
-    4. Delete the old default route:
+            ping 8.8.8.8 -c10
 
-            sudo ip route del default via 192.168.0.1
-
-    5. Check your internet connection:
-
-            ping 8.8.8.8 -c4
-
-    6. Check your public IP (which should be the same as `{VPN IP address}`): 
+    5. Check your public IP (which should be `111.111.111.111`): 
 
             wget -qO- http://ipecho.net/plain ; echo
 
@@ -200,11 +148,11 @@ Start configuration with:
         > If you see the VPN server’s IP, everything was set up correctly and your 
         > Linux is connected to the VPN via SoftEther VPN client.
         > 
-        > If the ping to the “8.8.8.8” is OK but you can not retrieve anything else by
-        > public hostname, add Google DNS (or any Public DNS server) to your “/etc/resolv.conf” file:
+        > If the ping to the `8.8.8.8` is OK but you can not retrieve anything else by
+        > public hostname, add Google DNS (or any Public DNS server) to your `/etc/resolv.conf` file:
         > 
         > ```
-        > sudo echo nameserver 8.8.8.8 >> /etc/resolv.conf
+        > echo nameserver 8.8.8.8 | sudo tee /etc/resolv.conf
         > ```
       
 ### Disconnecting from VPN
@@ -213,12 +161,12 @@ When you are done with VPN connection, you should perform the followings to prop
 
 1. Delete the VPN route:
 
-        sudo ip route del 93.115.92.240/32            # Where the IP is {VPN IP address}
+        sudo ip route del 111.111.111.111/32
         sudo route del default
   
 2. Add a default route via your local gateway
 
-        sudo ip route add default via 192.168.0.1     # Where the IP is your local gateway IP address
+        sudo ip route add default via 192.168.1.1
   
 3. Optionally: Stop the VPN client:
 
