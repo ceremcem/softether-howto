@@ -7,7 +7,10 @@ get_external_ip(){
     wget -qO- http://ipecho.net/plain
 }
 
-VPN_CMD="$_sdir/../vpnclient/vpncmd localhost /client /cmd"
+INSTALL_DIR="$_sdir/../vpnclient"
+
+VPN_CMD="$INSTALL_DIR/vpncmd localhost /client /cmd"
+VPN_CLIENT="$INSTALL_DIR/vpnclient"
 
 cfg="$_sdir/config.sh"
 
@@ -20,6 +23,11 @@ safe_source $cfg
 
 LOCAL_GATEWAY_IP="$(ip route | grep default | cut -d' ' -f 3)"
 PRODUCED_NIC_NAME="vpn_${NIC_NAME}"
+
+if ! $VPN_CMD check &> /dev/null; then
+    echo "INFO: vpnclient isn't running, starting client."
+    sudo $VPN_CLIENT start
+fi
 
 # Create the NIC
 if ifconfig $PRODUCED_NIC_NAME &> /dev/null; then
@@ -66,6 +74,9 @@ cleanup(){
     sudo route del default
     sudo ip route del $SERVER_IP/32
     sudo ip route add default via $LOCAL_GATEWAY_IP
+    echo "Disconnecting from VPN"
+    $VPN_CMD AccountDisconnect ${ACCOUNT_NAME}
+    sudo $VPN_CLIENT stop
     echo "Current external ip: $(get_external_ip)"
 }
 
