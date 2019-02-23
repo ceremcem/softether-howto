@@ -49,7 +49,7 @@ Requirements:
 | Your VPN password                     | 1234567*          | Ask your VPN provider | 
 | The virtual hub name to connect to    | VPN               | Ask your VPN provider |
 | The VPN gateway IP                    | 192.168.30.1      | Ask your VPN provider |
-| Your local gateway IP                 | 192.168.1.1       | `ip route | grep default` |     
+| Your local gateway IP                 | 192.168.1.1       | `ip route \| grep default` |     
 
 
 ### 1. Start the SoftEther VPN client:
