@@ -85,7 +85,7 @@ If all the checks are passed, you can go to the next step.
 
 2. Create an account:
 
-       ./vpncmd localhost /client /cmd AccountCreate heyyou /SERVER:111.111.111.111:443 /HUB:VPN /USERNAME:myuser /NICNAME:vpn_aaa
+       ./vpncmd localhost /client /cmd AccountCreate heyyou /SERVER:111.111.111.111:443 /HUB:VPN /USERNAME:myuser /NICNAME:vpn_aaa_se
     
 3. Set up a password for your account:
 
