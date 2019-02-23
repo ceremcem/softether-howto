@@ -85,7 +85,7 @@ If all the checks are passed, you can go to the next step.
 
 2. Create an account:
 
-       ./vpncmd localhost /client /cmd AccountCreate heyyou /SERVER:111.111.111.111:443 /HUB:VPN /USERNAME:myuser /NICNAME:vpn_aaa_se
+       ./vpncmd localhost /client /cmd AccountCreate heyyou /SERVER:111.111.111.111:443 /HUB:VPN /USERNAME:myuser /NICNAME:aaa_se
     
 3. Set up a password for your account:
 
@@ -168,9 +168,10 @@ When you are done with VPN connection, you should perform the followings to prop
 
         sudo ip route add default via 192.168.1.1
   
-3. Optionally: Stop the VPN client:
+3. Optionally: Disconnect and stop the VPN client:
 
-        sudo ./vpnclient stop
+       ./vpncmd localhost /client /cmd AccountDisconnect heyyou
+       sudo ./vpnclient stop
 
 
 
