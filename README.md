@@ -1,6 +1,4 @@
-# Linux Client
-
-> Based on https://www.cactusvpn.com/tutorials/how-to-set-up-softether-vpn-client-on-linux/
+# Linux Client Setup
 
 ## Download and Compile SoftEther client
 
@@ -15,6 +13,8 @@ make
 ```
 
 ## Configure the VPN Client
+
+> Assuming this repo and `vpnclient` folder (above) are placed side by side, in the same folder. 
 
 It is sufficient to run the provided script to connect to your VPN:
 
