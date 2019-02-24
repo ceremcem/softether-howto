@@ -12,6 +12,25 @@ nudo(){
     sudo -i -u $SUDO_USER "$@"
 }
 
+# copy/paste from aktos-bash-lib
+echo_stamp () {
+  local MESSAGE="$(date +'%F %H:%M:%S') - $@"
+  echo $MESSAGE
+}
+# end of copy/paste from aktos-bash-lib
+
+is_network_reachable() {
+    # returns: boolean
+    if ping -c1 -w1 8.8.8.8 &> /dev/null; then
+        return 0
+    else
+        echo "DEBUG: re-checking connectivity"
+        sleep 2
+        ping -c1 -w1 8.8.8.8 &> /dev/null
+    fi
+}
+
+
 INSTALL_DIR="$_sdir/../vpnclient"
 
 VPN_CMD="nudo $INSTALL_DIR/vpncmd localhost /client /cmd"
@@ -113,17 +132,19 @@ if is_external_ip_correct; then
     echo "Client IP: $(get_vpn_ip)"
 else
     echo "...something went wrong!"
+    exit 5
 fi
 
 echo
 echo "Press Ctrl+C to disconnect from VPN"
 echo "-----------------------------------"
 while :; do
-    if ! is_external_ip_correct; then
-        echo "Refreshing IP!"
-        ifconfig # for debugging
-        timeout 20s dhclient $PRODUCED_NIC_NAME
+    if [[ -z $(get_vpn_ip) ]]; then
+        echo_stamp "Connection seems to be lost!"
+        timeout 20s dhclient $PRODUCED_NIC_NAME &> /dev/null
+        [[ $? -eq 0 ]] && echo_stamp "Reconnected."
         echo "====================================="
+        continue
     fi
-    sleep 10s
+    sleep 2s
 done
