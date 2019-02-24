@@ -24,6 +24,10 @@ safe_source $cfg
 LOCAL_GATEWAY_IP="$(ip route | grep default | cut -d' ' -f 3)"
 PRODUCED_NIC_NAME="vpn_${NIC_NAME}"
 
+get_vpn_ip(){
+    ifconfig $PRODUCED_NIC_NAME | grep 'inet.*netmask' | awk '{print $2}'
+}
+
 cleanup(){
     echo
     echo "Restoring previous routing table settings"
@@ -90,6 +94,7 @@ echo "-----------------------------------"
 echo "Current external ip: $(get_external_ip)"
 if [[ "$(get_external_ip)" = "$SERVER_IP" ]]; then
     echo "...succesfully connected to VPN"
+    echo "Client IP: $(get_vpn_ip)"
 else
     echo "...something went wrong!"
 fi
