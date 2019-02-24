@@ -4,12 +4,17 @@ safe_source () { [[ ! -z ${1:-} ]] && source $1; _dir="$(cd "$(dirname "${BASH_S
 # end of bash boilerplate
 
 get_external_ip(){
-    wget -qO- http://ipecho.net/plain
+    timeout 5s wget -qO- http://ipecho.net/plain
+}
+
+nudo(){
+    # normal user do
+    sudo -i -u $SUDO_USER "$@"
 }
 
 INSTALL_DIR="$_sdir/../vpnclient"
 
-VPN_CMD="$INSTALL_DIR/vpncmd localhost /client /cmd"
+VPN_CMD="nudo $INSTALL_DIR/vpncmd localhost /client /cmd"
 VPN_CLIENT="$INSTALL_DIR/vpnclient"
 
 cfg="$_sdir/config.sh"
@@ -21,6 +26,10 @@ if [[ ! -f $cfg ]]; then
 fi
 safe_source $cfg
 
+
+# All checks are done, run as root.
+[[ $(whoami) = "root" ]] || { sudo $0 "$@"; exit 0; }
+
 LOCAL_GATEWAY_IP="$(ip route | grep default | cut -d' ' -f 3)"
 PRODUCED_NIC_NAME="vpn_${NIC_NAME}"
 
@@ -31,12 +40,12 @@ get_vpn_ip(){
 cleanup(){
     echo
     echo "Restoring previous routing table settings"
-    sudo route del default
-    sudo ip route del $SERVER_IP/32
-    sudo ip route add default via $LOCAL_GATEWAY_IP
+    route del default
+    ip route del $SERVER_IP/32
+    ip route add default via $LOCAL_GATEWAY_IP
     echo "Disconnecting from VPN"
     $VPN_CMD AccountDisconnect ${ACCOUNT_NAME}
-    sudo $VPN_CLIENT stop
+    $VPN_CLIENT stop
     echo "Current external ip: $(get_external_ip)"
 }
 
@@ -45,7 +54,7 @@ trap cleanup EXIT
 
 if ! $VPN_CMD check &> /dev/null; then
     echo "INFO: vpnclient isn't running, starting client."
-    sudo $VPN_CLIENT start
+    $VPN_CLIENT start
 fi
 
 # Create the NIC
@@ -78,21 +87,28 @@ else
 fi
 
 # Set up the routing table
-echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward > /dev/null
+echo 1 | tee /proc/sys/net/ipv4/ip_forward > /dev/null
 echo "Requesting IP with dhclient:"
 #sudo dhclient -r # <- this command ruins the connection
-sudo timeout 20s dhclient $PRODUCED_NIC_NAME
+timeout 20s dhclient $PRODUCED_NIC_NAME
 [[ $? -eq 0 ]] || { echo "Failed to get DHCP response"; exit 5; }
 
 echo "Altering routing table to use VPN server as gateway"
-sudo ip route add $SERVER_IP/32 via $LOCAL_GATEWAY_IP
-sudo route add default gw $VPN_GATEWAY_IP
-sudo ip route del default via $LOCAL_GATEWAY_IP
+ip route add $SERVER_IP/32 via $LOCAL_GATEWAY_IP
+route add default gw $VPN_GATEWAY_IP
+ip route del default via $LOCAL_GATEWAY_IP
 
+is_external_ip_correct(){
+    if [[ "$(get_external_ip)" = "$SERVER_IP" ]]; then
+        return 0
+    else
+        return 5
+    fi
+}
 
 echo "-----------------------------------"
 echo "Current external ip: $(get_external_ip)"
-if [[ "$(get_external_ip)" = "$SERVER_IP" ]]; then
+if is_external_ip_correct; then
     echo "...succesfully connected to VPN"
     echo "Client IP: $(get_vpn_ip)"
 else
@@ -102,4 +118,12 @@ fi
 echo
 echo "Press Ctrl+C to disconnect from VPN"
 echo "-----------------------------------"
-sleep infinity
+while :; do
+    if ! is_external_ip_correct; then
+        echo "Refreshing IP!"
+        ifconfig # for debugging
+        timeout 20s dhclient $PRODUCED_NIC_NAME
+        echo "====================================="
+    fi
+    sleep 10s
+done
