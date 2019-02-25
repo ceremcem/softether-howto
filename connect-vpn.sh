@@ -25,7 +25,7 @@ is_ip_reachable(){
     local ip="$1"
     for i in `seq 1 5`; do
         if timeout 0.2s ping -c 1 "$ip" &> /dev/null; then
-            [[ $i -gt 1 ]] && echo "ping is okay in i: $i"
+            # immediately return if succeeded
             return 0
         fi
     done
