@@ -19,15 +19,19 @@ echo_stamp () {
 }
 # end of copy/paste from aktos-bash-lib
 
-is_internet_reachable() {
+is_ip_reachable(){
+    local ip="$1"
     # returns: boolean
-    if ping -c1 -w1 8.8.8.8 &> /dev/null; then
+    if ping -c1 -w1 "$ip" &> /dev/null; then
         return 0
     else
-        echo "DEBUG: re-checking connectivity"
         sleep 2
-        ping -c1 -w1 8.8.8.8 &> /dev/null
+        ping -c1 -w1 "$ip" &> /dev/null
     fi
+}
+
+is_internet_reachable() {
+    is_ip_reachable "8.8.8.8"
 }
 
 
@@ -57,13 +61,18 @@ get_vpn_ip(){
     ip address show $PRODUCED_NIC_NAME | grep "inet\W" | awk '{print $2}' | cut -d/ -f1
 }
 
+is_gateway_reachable(){
+    is_ip_reachable "$VPN_GATEWAY_IP"
+}
+
+
 cleanup(){
     echo
     echo "Restoring previous routing table settings"
     ip route del $SERVER_IP/32
     ip route chg default via $LOCAL_GATEWAY_IP
     echo "Disconnecting from VPN"
-    $VPN_CMD AccountDisconnect ${ACCOUNT_NAME}
+    $VPN_CMD AccountDisconnect ${ACCOUNT_NAME} > /dev/null
     $VPN_CLIENT stop
     echo "Current external ip: $(get_external_ip)"
 }
@@ -80,29 +89,32 @@ fi
 if ip address show dev $PRODUCED_NIC_NAME &> /dev/null; then
     echo "* NIC \"$PRODUCED_NIC_NAME\" seems already created."
 else
-    $VPN_CMD NicCreate $NIC_NAME
+    echo "*** Creating NIC: \"$NIC_NAME\"..."
+    $VPN_CMD NicCreate $NIC_NAME > /dev/null
 fi
 
 # Create the account
 if $VPN_CMD AccountGet ${ACCOUNT_NAME} &> /dev/null; then
     echo "* Account \"${ACCOUNT_NAME}\" seems already created."
 else
+    echo "*** Creating Account: \"$ACCOUNT_NAME\"..."
     $VPN_CMD AccountCreate ${ACCOUNT_NAME} \
         /SERVER:${SERVER_IP}:${SERVER_PORT} \
         /HUB:${HUB_NAME} \
         /USERNAME:${VPN_USERNAME} \
-        /NICNAME:${NIC_NAME}
+        /NICNAME:${NIC_NAME} > /dev/null
 
     $VPN_CMD AccountPassword ${ACCOUNT_NAME} \
         /PASSWORD:${VPN_PASSWORD} \
-        /TYPE:radius
+        /TYPE:radius > /dev/null
 fi
 
 # Connect to VPN
 if $VPN_CMD AccountStatusGet ${ACCOUNT_NAME} &> /dev/null; then
     echo "* Account \"${ACCOUNT_NAME}\" seems connected."
 else
-    $VPN_CMD AccountConnect ${ACCOUNT_NAME}
+    echo "*** Connecting to account: \"$ACCOUNT_NAME\"..."
+    $VPN_CMD AccountConnect ${ACCOUNT_NAME} > /dev/null
 fi
 
 # Set up the routing table
@@ -125,25 +137,39 @@ is_external_ip_correct(){
 }
 
 echo "-----------------------------------"
-echo "Current external ip: $(get_external_ip)"
+echo -n "Current external ip: $(get_external_ip)"
 if is_external_ip_correct; then
-    echo "...succesfully connected to VPN"
+    echo "  [External IP VERIFIED]"
     echo "Client IP: $(get_vpn_ip)"
 else
-    echo "...something went wrong!"
+    echo "  [External IP IS WRONG!]"
+    echo "Exiting..."
     exit 5
 fi
 
 echo
 echo "Press Ctrl+C to disconnect from VPN"
 echo "-----------------------------------"
+vpn_reachable=true
 while :; do
     if [[ -z $(get_vpn_ip) ]]; then
-        echo_stamp "Connection seems to be lost!"
+        echo_stamp "VPN IP is lost!"
         timeout 20s dhclient $PRODUCED_NIC_NAME &> /dev/null
         [[ $? -eq 0 ]] && echo_stamp "Reconnected."
         echo "====================================="
         continue
     fi
+
+    # log vpn gateway connection states
+    if ! is_gateway_reachable && [[ $vpn_reachable = true ]]; then
+        echo_stamp "VPN gateway unreachable!"
+        vpn_reachable=false
+    else
+        if [[ $vpn_reachable = false ]]; then
+            echo_stamp "VPN gateway is now reachable."
+        fi
+        vpn_reachable=true
+    fi
+
     sleep 2s
 done
