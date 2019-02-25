@@ -4,7 +4,7 @@ safe_source () { [[ ! -z ${1:-} ]] && source $1; _dir="$(cd "$(dirname "${BASH_S
 # end of bash boilerplate
 
 get_external_ip(){
-    timeout 5s wget -qO- http://ipecho.net/plain
+    timeout 5s wget -qO- http://ipecho.net/plain -o /dev/null
 }
 
 nudo(){
@@ -53,7 +53,7 @@ LOCAL_GATEWAY_IP="$(ip route | grep default | cut -d' ' -f 3)"
 PRODUCED_NIC_NAME="vpn_${NIC_NAME}"
 
 get_vpn_ip(){
-    ip address show $PRODUCED_NIC_NAME | grep "inet\W" | awk '{print $2}' | cut -d/ -f1           
+    ip address show $PRODUCED_NIC_NAME | grep "inet\W" | awk '{print $2}' | cut -d/ -f1
 }
 
 cleanup(){
