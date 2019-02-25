@@ -49,8 +49,10 @@ safe_source $cfg
 # All checks are done, run as root.
 [[ $(whoami) = "root" ]] || { sudo $0 "$@"; exit 0; }
 
-LOCAL_GATEWAY_IP="$(ip route | grep default | cut -d' ' -f 3)"
+LOCAL_GATEWAY_IP="$(ip route | grep default | awk '{print $3}' | head -n1)"
 PRODUCED_NIC_NAME="vpn_${NIC_NAME}"
+
+echo "Using local gateway IP: $LOCAL_GATEWAY_IP"
 
 get_vpn_ip(){
     ip address show $PRODUCED_NIC_NAME | grep "inet\W" | awk '{print $2}' | cut -d/ -f1
