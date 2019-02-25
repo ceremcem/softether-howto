@@ -19,15 +19,17 @@ echo_stamp () {
 }
 # end of copy/paste from aktos-bash-lib
 
+
 is_ip_reachable(){
-    local ip="$1"
     # returns: boolean
-    if ping -c1 -w1 "$ip" &> /dev/null; then
-        return 0
-    else
-        sleep 2
-        ping -c1 -w1 "$ip" &> /dev/null
-    fi
+    local ip="$1"
+    for i in `seq 1 5`; do
+        if ping -c 1 -t 1 "$ip" &> /dev/null; then
+            [[ $i -gt 1 ]] && echo "ping is okay in i: $i"
+            return 0
+        fi
+    done
+    return 2
 }
 
 is_internet_reachable() {
@@ -89,7 +91,7 @@ fi
 if ip address show dev $PRODUCED_NIC_NAME &> /dev/null; then
     echo "* NIC \"$PRODUCED_NIC_NAME\" seems already created."
 else
-    echo "*** Creating NIC: \"$NIC_NAME\"..."
+    echo "+ Creating NIC: \"$NIC_NAME\"..."
     $VPN_CMD NicCreate $NIC_NAME > /dev/null
 fi
 
@@ -97,7 +99,7 @@ fi
 if $VPN_CMD AccountGet ${ACCOUNT_NAME} &> /dev/null; then
     echo "* Account \"${ACCOUNT_NAME}\" seems already created."
 else
-    echo "*** Creating Account: \"$ACCOUNT_NAME\"..."
+    echo "+ Creating Account: \"$ACCOUNT_NAME\"..."
     $VPN_CMD AccountCreate ${ACCOUNT_NAME} \
         /SERVER:${SERVER_IP}:${SERVER_PORT} \
         /HUB:${HUB_NAME} \
@@ -113,7 +115,7 @@ fi
 if $VPN_CMD AccountStatusGet ${ACCOUNT_NAME} &> /dev/null; then
     echo "* Account \"${ACCOUNT_NAME}\" seems connected."
 else
-    echo "*** Connecting to account: \"$ACCOUNT_NAME\"..."
+    echo "+ Connecting to account: \"$ACCOUNT_NAME\"..."
     $VPN_CMD AccountConnect ${ACCOUNT_NAME} > /dev/null
 fi
 
@@ -139,10 +141,10 @@ is_external_ip_correct(){
 echo "-----------------------------------"
 echo -n "Current external ip: $(get_external_ip)"
 if is_external_ip_correct; then
-    echo "  [External IP VERIFIED]"
+    echo "  [Correct]"
     echo "Client IP: $(get_vpn_ip)"
 else
-    echo "  [External IP IS WRONG!]"
+    echo "  [WRONG!]"
     echo "Exiting..."
     exit 5
 fi
