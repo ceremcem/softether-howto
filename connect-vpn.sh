@@ -59,9 +59,8 @@ get_vpn_ip(){
 cleanup(){
     echo
     echo "Restoring previous routing table settings"
-    route del default
     ip route del $SERVER_IP/32
-    ip route add default via $LOCAL_GATEWAY_IP
+    ip route chg default via $LOCAL_GATEWAY_IP
     echo "Disconnecting from VPN"
     $VPN_CMD AccountDisconnect ${ACCOUNT_NAME}
     $VPN_CLIENT stop
@@ -114,8 +113,7 @@ timeout 20s dhclient $PRODUCED_NIC_NAME
 
 echo "Altering routing table to use VPN server as gateway"
 ip route add $SERVER_IP/32 via $LOCAL_GATEWAY_IP
-route add default gw $VPN_GATEWAY_IP
-ip route del default via $LOCAL_GATEWAY_IP
+ip route chg default via $VPN_GATEWAY_IP
 
 is_external_ip_correct(){
     if [[ "$(get_external_ip)" = "$SERVER_IP" ]]; then
