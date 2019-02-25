@@ -19,7 +19,7 @@ echo_stamp () {
 }
 # end of copy/paste from aktos-bash-lib
 
-is_network_reachable() {
+is_internet_reachable() {
     # returns: boolean
     if ping -c1 -w1 8.8.8.8 &> /dev/null; then
         return 0
@@ -44,7 +44,6 @@ if [[ ! -f $cfg ]]; then
     exit 5
 fi
 safe_source $cfg
-
 
 # All checks are done, run as root.
 [[ $(whoami) = "root" ]] || { sudo $0 "$@"; exit 0; }
