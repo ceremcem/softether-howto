@@ -53,7 +53,7 @@ LOCAL_GATEWAY_IP="$(ip route | grep default | cut -d' ' -f 3)"
 PRODUCED_NIC_NAME="vpn_${NIC_NAME}"
 
 get_vpn_ip(){
-    ifconfig $PRODUCED_NIC_NAME | grep 'inet.*netmask' | awk '{print $2}'
+    ip address show $PRODUCED_NIC_NAME | grep "inet\W" | awk '{print $2}' | cut -d/ -f1           
 }
 
 cleanup(){
