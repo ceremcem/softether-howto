@@ -77,7 +77,7 @@ if ! $VPN_CMD check &> /dev/null; then
 fi
 
 # Create the NIC
-if ifconfig $PRODUCED_NIC_NAME &> /dev/null; then
+if ip address show dev $PRODUCED_NIC_NAME &> /dev/null; then
     echo "* NIC \"$PRODUCED_NIC_NAME\" seems already created."
 else
     $VPN_CMD NicCreate $NIC_NAME
