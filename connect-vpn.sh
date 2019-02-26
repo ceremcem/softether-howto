@@ -152,6 +152,7 @@ while :; do
         timeout 20s dhclient $PRODUCED_NIC_NAME &> /dev/null
         [[ $? -eq 0 ]] && echo_stamp "Reconnected."
         echo "====================================="
+        sleep 1
         continue
     fi
 
