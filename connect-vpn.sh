@@ -24,7 +24,7 @@ is_ip_reachable(){
     # returns: boolean
     local ip="$1"
     for i in `seq 1 5`; do
-        if timeout 0.2s ping -c 1 "$ip" &> /dev/null; then
+        if timeout 1s ping -c 1 "$ip" &> /dev/null; then
             # immediately return if succeeded
             return 0
         fi
@@ -130,21 +130,14 @@ echo "Altering routing table to use VPN server as gateway"
 ip route add $SERVER_IP/32 via $LOCAL_GATEWAY_IP
 ip route chg default via $VPN_GATEWAY_IP
 
-is_external_ip_correct(){
-    if [[ "$(get_external_ip)" = "$SERVER_IP" ]]; then
-        return 0
-    else
-        return 5
-    fi
-}
-
 echo "-----------------------------------"
-echo -n "Current external ip: $(get_external_ip)"
-if is_external_ip_correct; then
-    echo "  [Correct]"
+current_ip="$(get_external_ip)"
+echo -n "Current external ip: $current_ip"
+if [[ "$current_ip" = "${SERVER_IP}" ]]; then
+    echo " [Correct]"
     echo "Client IP: $(get_vpn_ip)"
 else
-    echo "  [WRONG!]"
+    echo " [WRONG: $current_ip]"
     echo "Exiting..."
     exit 5
 fi
