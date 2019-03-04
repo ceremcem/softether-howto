@@ -76,6 +76,7 @@ cleanup(){
     echo "Disconnecting from VPN"
     $VPN_CMD AccountDisconnect ${ACCOUNT_NAME} > /dev/null
     $VPN_CLIENT stop
+    dhclient -r $PRODUCED_NIC_NAME
     echo "Current external ip: $(get_external_ip)"
 }
 
@@ -122,7 +123,7 @@ fi
 # Set up the routing table
 echo 1 | tee /proc/sys/net/ipv4/ip_forward > /dev/null
 echo "Requesting IP with dhclient:"
-#sudo dhclient -r # <- this command ruins the connection
+dhclient -r $PRODUCED_NIC_NAME
 timeout 20s dhclient $PRODUCED_NIC_NAME
 [[ $? -eq 0 ]] || { echo "Failed to get DHCP response"; exit 5; }
 
