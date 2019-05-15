@@ -112,60 +112,76 @@ else
         /TYPE:radius > /dev/null
 fi
 
-# Connect to VPN
-if $VPN_CMD AccountStatusGet ${ACCOUNT_NAME} &> /dev/null; then
-    echo "* Account \"${ACCOUNT_NAME}\" seems connected."
-else
-    echo "+ Connecting to account: \"$ACCOUNT_NAME\"..."
-    $VPN_CMD AccountConnect ${ACCOUNT_NAME} > /dev/null
-fi
 
 # Set up the routing table
 echo 1 | tee /proc/sys/net/ipv4/ip_forward > /dev/null
-echo "Requesting IP with dhclient:"
-dhclient -r $PRODUCED_NIC_NAME
-timeout 20s dhclient $PRODUCED_NIC_NAME
-[[ $? -eq 0 ]] || { echo "Failed to get DHCP response"; exit 5; }
 
-echo "Altering routing table to use VPN server as gateway"
-ip route add $SERVER_IP/32 via $LOCAL_GATEWAY_IP
-ip route chg default via $VPN_GATEWAY_IP
+# Connect/reconnect to VPN
+prev_dhclient_iface=`ps --no-headers $(pgrep dhclient) | awk '{print $6}' | uniq`
+reconnect_to_vpn(){
+    if $VPN_CMD AccountStatusGet ${ACCOUNT_NAME} &> /dev/null; then
+        echo "* Account \"${ACCOUNT_NAME}\" seems connected."
+    else
+        echo "+ Connecting to account: \"$ACCOUNT_NAME\"..."
+        $VPN_CMD AccountConnect ${ACCOUNT_NAME} > /dev/null
+    fi
 
-echo "-----------------------------------"
-current_ip="$(get_external_ip)"
-echo -n "Current external ip: $current_ip"
-if [[ "$current_ip" = "${SERVER_IP}" ]]; then
-    echo " [Correct]"
-    echo "Client IP: $(get_vpn_ip)"
-else
-    echo " [WRONG: $current_ip]"
-    echo "Exiting..."
-    exit 5
-fi
+    echo "Requesting IP with dhclient:"
+    if [ ! -z $prev_dhclient_iface ]; then
+        echo "(re-requesting dhcp address for previous iface: $prev_dhclient_iface)"
+        dhclient -r $prev_dhclient_iface
+        timeout 20s dhclient $prev_dhclient_iface
+    fi
 
+    dhclient -r $PRODUCED_NIC_NAME
+    timeout 20s dhclient $PRODUCED_NIC_NAME
+    [[ $? -eq 0 ]] || { echo "Failed to get DHCP response"; return 5; }
+
+    echo "Altering routing table to use VPN server as gateway"
+    ip route add $SERVER_IP/32 via $LOCAL_GATEWAY_IP
+    ip route chg default via $VPN_GATEWAY_IP
+
+    echo "-----------------------------------"
+    current_ip="$(get_external_ip)"
+    echo -n "Current external ip: $current_ip"
+    if [[ "$current_ip" = "${SERVER_IP}" ]]; then
+        echo " [Correct]"
+        echo "Client IP: $(get_vpn_ip)"
+    else
+        echo " [WRONG: $current_ip]"
+        echo "Exiting..."
+        return 5
+    fi
+}
+
+# Connect for the first time
+reconnect_to_vpn
 echo
 echo "Press Ctrl+C to disconnect from VPN"
 echo "-----------------------------------"
+
+
+echo "TODO: does not try to reconnect when external ip is wrong!"
+
 vpn_reachable=true
 while :; do
     if [[ -z $(get_vpn_ip) ]]; then
         echo_stamp "VPN IP is lost!"
-        timeout 20s dhclient $PRODUCED_NIC_NAME &> /dev/null
-        [[ $? -eq 0 ]] && echo_stamp "Reconnected."
-        echo "====================================="
-        sleep 1
-        continue
     fi
 
     # log vpn gateway connection states
-    if ! is_gateway_reachable && [[ $vpn_reachable = true ]]; then
-        echo_stamp "VPN gateway unreachable!"
-        vpn_reachable=false
+    if ! is_gateway_reachable; then
+        /home/ceremcem/.sbin/bell 2> /dev/null
+        reconnect_to_vpn
+        if $vpn_reachable; then
+            vpn_reachable=false
+            echo_stamp "VPN gateway unreachable!"
+        fi
     else
-        if [[ $vpn_reachable = false ]]; then
+        if ! $vpn_reachable; then
+            vpn_reachable=true
             echo_stamp "VPN gateway is now reachable."
         fi
-        vpn_reachable=true
     fi
 
     sleep 2s
