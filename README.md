@@ -22,4 +22,9 @@ It is sufficient to run the provided script to connect to your VPN:
 ./connect-to-vpn.sh
 ```
 
-> If you manually make your configuration, see the [HOWTO](./HOWTO.md).
+> If you want to make your configuration manually, see the [HOWTO](./HOWTO.md).
+
+# See Also 
+
+* [How to forward server port from physical machine to VPN client in SoftEther?
+](https://superuser.com/q/1408862/187576)
