@@ -3,6 +3,7 @@ set -u -o pipefail
 safe_source () { [[ ! -z ${1:-} ]] && source $1; _dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; _sdir=$(dirname "$(readlink -f "$0")"); }; safe_source
 # end of bash boilerplate
 
+
 get_external_ip(){
     timeout 5s wget -qO- http://ipecho.net/plain -o /dev/null
 }
@@ -69,7 +70,6 @@ is_gateway_reachable(){
 
 
 cleanup(){
-    echo
     echo "Restoring previous routing table settings"
     ip route del $SERVER_IP/32
     ip route chg default via $LOCAL_GATEWAY_IP
@@ -117,7 +117,17 @@ fi
 echo 1 | tee /proc/sys/net/ipv4/ip_forward > /dev/null
 
 # Connect/reconnect to VPN
-prev_dhclient_iface=`ps --no-headers $(pgrep dhclient) | awk '{print $6}' | uniq`
+prev_dhclient_iface=
+ifaces=( $(ip addr list | awk -F': ' '/^[0-9]/ {print $2}') )
+for i in ${ifaces[@]}; do
+    while read -r d; do
+         if `echo $d | grep -w "$i" > /dev/null`; then
+             prev_dhclient_iface="$i"
+             break 2
+         fi
+    done <<< "$(ps --no-headers $(pgrep dhclient))"
+done
+
 reconnect_to_vpn(){
     if $VPN_CMD AccountStatusGet ${ACCOUNT_NAME} &> /dev/null; then
         echo "* Account \"${ACCOUNT_NAME}\" seems connected."
@@ -126,13 +136,14 @@ reconnect_to_vpn(){
         $VPN_CMD AccountConnect ${ACCOUNT_NAME} > /dev/null
     fi
 
-    echo "Requesting IP with dhclient:"
-    if [ ! -z $prev_dhclient_iface ]; then
+    echo "Setting up VPN IP for $PRODUCED_NIC_NAME:"
+    if [[ ! -z $prev_dhclient_iface ]]; then
         echo "(re-requesting dhcp address for previous iface: $prev_dhclient_iface)"
         dhclient -r $prev_dhclient_iface
         timeout 20s dhclient $prev_dhclient_iface
     fi
 
+    echo "...requesting VPN IP"
     dhclient -r $PRODUCED_NIC_NAME
     timeout 20s dhclient $PRODUCED_NIC_NAME
     [[ $? -eq 0 ]] || { echo "Failed to get DHCP response"; return 5; }
