@@ -55,10 +55,9 @@ safe_source $cfg
 # All checks are done, run as root.
 [[ $(whoami) = "root" ]] || { sudo $0 "$@"; exit 0; }
 
-LOCAL_GATEWAY_IP="$(ip route | grep default | awk '{print $3}' | head -n1)"
+LOCAL_GATEWAY_IP=
 PRODUCED_NIC_NAME="vpn_${NIC_NAME}"
 
-echo "Using local gateway IP: $LOCAL_GATEWAY_IP"
 
 get_vpn_ip(){
     ip address show $PRODUCED_NIC_NAME | grep "inet\W" | awk '{print $2}' | cut -d/ -f1
@@ -129,6 +128,17 @@ for i in ${ifaces[@]}; do
 done
 
 reconnect_to_vpn(){
+    while :; do
+        LOCAL_GATEWAY_IP="$(ip route | grep default | awk '{print $3}' | head -n1)"
+        if [[ -z $LOCAL_GATEWAY_IP ]]; then
+            echo "No local gateway IP found, waiting..."
+            sleep 2
+        else
+            break
+        fi
+    done
+    echo "Using local gateway IP: $LOCAL_GATEWAY_IP"
+
     if $VPN_CMD AccountStatusGet ${ACCOUNT_NAME} &> /dev/null; then
         echo "* Account \"${ACCOUNT_NAME}\" seems connected."
     else
