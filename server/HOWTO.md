@@ -29,7 +29,10 @@
 
        UserPasswordSet bar
 
-(TODO: Test connection works)
+5. Enable SecureNAT
+
+       SecureNatEnable
+ 
 
 # Forward physical machine port to vpn client port
 
