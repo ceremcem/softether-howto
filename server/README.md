@@ -53,6 +53,9 @@ update-rc.d vpnserver defaults
 
        UserPasswordSet bar
  
+5. Enable SecureNAT
+
+       SecureNatEnable
 
 # Forward physical machine port to vpn client port
 
