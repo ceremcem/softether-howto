@@ -43,17 +43,20 @@ INSTALL_DIR="$_sdir/../vpnclient"
 VPN_CMD="nudo $INSTALL_DIR/vpncmd localhost /client /cmd"
 VPN_CLIENT="$INSTALL_DIR/vpnclient"
 
-cfg="$_sdir/config.sh"
+cfg="$_sdir/${1:-}"
 
 if [[ ! -f $cfg ]]; then
     echo "ERROR: No configuration file found."
-    echo "Copy the config.sh.sample as config.sh and edit accordingly"
+    echo
+    echo "Copy the sample.config as your.config and edit accordingly"
     exit 5
 fi
 safe_source $cfg
 
 # All checks are done, run as root.
 [[ $(whoami) = "root" ]] || { sudo $0 "$@"; exit 0; }
+
+echo "Using configuration file: $cfg"
 
 LOCAL_GATEWAY_IP=
 PRODUCED_NIC_NAME="vpn_${NIC_NAME}"
@@ -132,6 +135,7 @@ reconnect_to_vpn(){
         LOCAL_GATEWAY_IP="$(ip route | grep default | awk '{print $3}' | head -n1)"
         if [[ -z $LOCAL_GATEWAY_IP ]]; then
             echo "No local gateway IP found, waiting..."
+            timeout 20s dhclient $prev_dhclient_iface
             sleep 2
         else
             break
