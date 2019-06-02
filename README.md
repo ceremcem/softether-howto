@@ -19,7 +19,9 @@ make
 It is sufficient to run the provided script to connect to your VPN:
 
 ```sh
-./connect-to-vpn.sh
+cp sample.config my-account.config
+# edit my-account.config accordingly
+./connect-to-vpn.sh my-account.config
 ```
 
 > If you want to make your configuration manually, see the [HOWTO](./HOWTO.md).
