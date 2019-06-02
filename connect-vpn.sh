@@ -24,10 +24,12 @@ echo_stamp () {
 is_ip_reachable(){
     # returns: boolean
     local ip="$1"
-    for i in `seq 1 5`; do
-        if timeout 1s ping -c 1 "$ip" &> /dev/null; then
+    for i in `seq 1 6`; do
+        if timeout 10s ping -c 1 "$ip" &> /dev/null; then
             # immediately return if succeeded
             return 0
+        else
+            echo_stamp "trying to get a successfull ping to $ip"
         fi
     done
     return 2
@@ -197,6 +199,7 @@ while :; do
     # log vpn gateway connection states
     if ! is_gateway_reachable; then
         /home/ceremcem/.sbin/bell 2> /dev/null
+        echo_stamp "VPN gateway seems unreachable, reconnecting"
         reconnect_to_vpn
         if $vpn_reachable; then
             vpn_reachable=false
