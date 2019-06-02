@@ -24,12 +24,17 @@ echo_stamp () {
 is_ip_reachable(){
     # returns: boolean
     local ip="$1"
+    local failed_before=false
     for i in `seq 1 6`; do
         if timeout 10s ping -c 1 "$ip" &> /dev/null; then
             # immediately return if succeeded
+            if $failed_before; then
+                echo_stamp "successfully ping to $ip"
+            fi
             return 0
         else
-            echo_stamp "trying to get a successfull ping to $ip"
+            failed_before=true
+            echo_stamp "trying to get a successful ping to $ip"
         fi
     done
     return 2
