@@ -43,7 +43,7 @@ INSTALL_DIR="$_sdir/../vpnclient"
 VPN_CMD="nudo $INSTALL_DIR/vpncmd localhost /client /cmd"
 VPN_CLIENT="$INSTALL_DIR/vpnclient"
 
-cfg="$_sdir/${1:-}"
+cfg="${1:-}"
 
 if [[ ! -f $cfg ]]; then
     echo "ERROR: No configuration file found."
