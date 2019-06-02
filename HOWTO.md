@@ -8,7 +8,7 @@
 
 Get [Linux x64 client](http://www.softether-download.com/files/softether/v4.28-9669-beta-2018.09.11-tree/Linux/SoftEther_VPN_Client/64bit_-_Intel_x64_or_AMD64/) or an appropriate one from [here](http://www.softether-download.com/files/softether/).
 
-### 2. Decompress SofEther VPN client
+### 2. Decompress SoftEther VPN client
 
 ```
 tar xvf softether*.tar.gz
