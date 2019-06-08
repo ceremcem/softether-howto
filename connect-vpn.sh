@@ -3,9 +3,13 @@ set -u -o pipefail
 safe_source () { [[ ! -z ${1:-} ]] && source $1; _dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; _sdir=$(dirname "$(readlink -f "$0")"); }; safe_source
 # end of bash boilerplate
 
+declare -a timeout_pids
 
 get_external_ip(){
-    timeout 5s wget -qO- http://ipecho.net/plain -o /dev/null
+    timeout 5s wget -qO- http://ipecho.net/plain -o /dev/null &
+    tp=$!
+    timeout_pids+=($tp)
+    wait $tp
 }
 
 nudo(){
@@ -26,7 +30,11 @@ is_ip_reachable(){
     local ip="$1"
     local failed_before=false
     for i in `seq 1 6`; do
-        if timeout 10s ping -c 1 "$ip" &> /dev/null; then
+        # see "killing timeout": https://unix.stackexchange.com/a/57692/65781
+        timeout 9s ping -c 1 "$ip" &> /dev/null &
+        tp=$!
+        timeout_pids+=($tp)
+        if wait $tp; then
             # immediately return if succeeded
             if $failed_before; then
                 echo_stamp "successfully ping to $ip"
@@ -36,6 +44,7 @@ is_ip_reachable(){
             failed_before=true
             echo_stamp "trying to get a successful ping to $ip"
         fi
+        sleep 1
     done
     return 2
 }
@@ -79,6 +88,7 @@ is_gateway_reachable(){
 
 
 cleanup(){
+    echo "-----------------------------------------"
     echo "Restoring previous routing table settings"
     ip route del $SERVER_IP/32
     ip route chg default via $LOCAL_GATEWAY_IP
@@ -89,6 +99,18 @@ cleanup(){
     echo "Current external ip: $(get_external_ip)"
 }
 
+pre_cleanup(){
+    echo "Executing pre-cleanup..."
+    for i in "${timeout_pids[*]}"; do
+        if [[ ! -z $i ]]; then
+            echo "Killing PID: $i"
+            kill -INT -$i 2> /dev/null
+        fi
+    done
+    exit
+}
+
+trap pre_cleanup INT
 trap cleanup EXIT
 
 
@@ -142,7 +164,10 @@ reconnect_to_vpn(){
         LOCAL_GATEWAY_IP="$(ip route | grep default | awk '{print $3}' | head -n1)"
         if [[ -z $LOCAL_GATEWAY_IP ]]; then
             echo "No local gateway IP found, waiting..."
-            timeout 20s dhclient $prev_dhclient_iface
+            timeout 20s dhclient $prev_dhclient_iface &
+            tp=$!
+            timeout_pids+=($tp)
+            wait $tp
             sleep 2
         else
             break
@@ -161,12 +186,18 @@ reconnect_to_vpn(){
     if [[ ! -z $prev_dhclient_iface ]]; then
         echo "(re-requesting dhcp address for previous iface: $prev_dhclient_iface)"
         dhclient -r $prev_dhclient_iface
-        timeout 20s dhclient $prev_dhclient_iface
+        timeout 20s dhclient $prev_dhclient_iface &
+        tp=$!
+        timeout_pids+=($tp)
+        wait $tp
     fi
 
     echo "...requesting VPN IP"
     dhclient -r $PRODUCED_NIC_NAME
-    timeout 20s dhclient $PRODUCED_NIC_NAME
+    timeout 20s dhclient $PRODUCED_NIC_NAME &
+    tp=$!
+    timeout_pids+=($tp)
+    wait $tp
     [[ $? -eq 0 ]] || { echo "Failed to get DHCP response"; return 5; }
 
     echo "Altering routing table to use VPN server as gateway"
