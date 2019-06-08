@@ -6,7 +6,7 @@ safe_source () { [[ ! -z ${1:-} ]] && source $1; _dir="$(cd "$(dirname "${BASH_S
 declare -a timeout_pids
 
 get_external_ip(){
-    timeout 5s wget -qO- http://ipecho.net/plain -o /dev/null &
+    timeout 15s wget -qO- http://ipecho.net/plain -o /dev/null &
     tp=$!
     timeout_pids+=($tp)
     wait $tp
@@ -96,6 +96,7 @@ cleanup(){
     $VPN_CMD AccountDisconnect ${ACCOUNT_NAME} > /dev/null
     $VPN_CLIENT stop
     dhclient -r $PRODUCED_NIC_NAME
+    dhclient $prev_dhclient_iface
     echo "Current external ip: $(get_external_ip)"
 }
 
