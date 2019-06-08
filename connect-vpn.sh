@@ -29,9 +29,9 @@ is_ip_reachable(){
     # returns: boolean
     local ip="$1"
     local failed_before=false
-    for i in `seq 1 6`; do
+    for i in `seq 1 3`; do
         # see "killing timeout": https://unix.stackexchange.com/a/57692/65781
-        timeout 9s ping -c 1 "$ip" &> /dev/null &
+        timeout 10s ping -c 1 "$ip" &> /dev/null &
         tp=$!
         timeout_pids+=($tp)
         if wait $tp; then
@@ -44,7 +44,6 @@ is_ip_reachable(){
             failed_before=true
             echo_stamp "trying to get a successful ping to $ip"
         fi
-        sleep 1
     done
     return 2
 }
