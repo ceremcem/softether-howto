@@ -225,8 +225,6 @@ echo "Press Ctrl+C to disconnect from VPN"
 echo "-----------------------------------"
 
 
-echo "TODO: does not try to reconnect when external ip is wrong!"
-
 vpn_reachable=true
 while :; do
     if [[ -z $(get_vpn_ip) ]]; then
