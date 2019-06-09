@@ -6,13 +6,21 @@ safe_source () { [[ ! -z ${1:-} ]] && source $1; _dir="$(cd "$(dirname "${BASH_S
 # see "killing timeout": https://unix.stackexchange.com/a/57692/65781
 declare -a timeout_pids
 my_timeout(){
-    local args tp
+    local args tp ret
     args="$@"
     timeout $args &
     tp=$!
     #echo "pid of timeout: $tp"
     timeout_pids+=($tp)
     wait $tp
+    ret=$?
+    count=${#timeout_pids[@]}
+    for ((i = 0; i < count; i++)); do
+        if [ "${timeout_pids[i]}" = "$tp" ] ; then
+            unset 'timeout_pids[i]'
+        fi
+    done
+    return $ret
 }
 
 get_external_ip(){
@@ -36,8 +44,9 @@ is_ip_reachable(){
     # returns: boolean
     local ip="$1"
     local failed_before=false
-    for i in `seq 1 6`; do
-        if my_timeout 9s ping -c 1 "$ip" &> /dev/null; then
+    for i in `seq 1 3`; do
+        # FIXME: https://superuser.com/q/1446588/187576
+        if my_timeout 9s ping -c 1 "$ip" 2> /dev/null; then
             # immediately return if succeeded
             if $failed_before; then
                 echo_stamp "successfully ping to $ip"
@@ -47,7 +56,6 @@ is_ip_reachable(){
             failed_before=true
             echo_stamp "trying to get a successful ping to $ip"
         fi
-        sleep 1
     done
     return 2
 }
@@ -116,7 +124,6 @@ pre_cleanup(){
 
 trap pre_cleanup INT
 trap cleanup EXIT
-
 
 if ! $VPN_CMD check &> /dev/null; then
     echo "INFO: vpnclient isn't running, starting client."
@@ -218,8 +225,6 @@ echo
 echo "Press Ctrl+C to disconnect from VPN"
 echo "-----------------------------------"
 
-
-echo "TODO: does not try to reconnect when external ip is wrong!"
 
 vpn_reachable=true
 while :; do
