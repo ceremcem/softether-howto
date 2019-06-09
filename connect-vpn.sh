@@ -112,6 +112,7 @@ cleanup(){
 }
 
 pre_cleanup(){
+    exec &> /dev/tty # see https://superuser.com/q/1446588/187576
     echo "Executing pre-cleanup..."
     for i in "${timeout_pids[*]}"; do
         if [[ ! -z $i ]]; then
