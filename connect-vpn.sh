@@ -46,7 +46,7 @@ is_ip_reachable(){
     local failed_before=false
     for i in `seq 1 3`; do
         # FIXME: https://superuser.com/q/1446588/187576
-        if my_timeout 9s ping -c 1 "$ip" 2> /dev/null; then
+        if my_timeout 9s ping -c 1 "$ip" &> /dev/null; then
             # immediately return if succeeded
             if $failed_before; then
                 echo_stamp "successfully ping to $ip"
