@@ -43,7 +43,7 @@ If `cmake<3.7` then compile `cmake` from source:
 ```
 wget https://github.com/Kitware/CMake/releases/download/v3.14.5/cmake-3.14.5.tar.gz
 tar -xvzf cmake*.gz
-cd cmake*
+cd cmake*/
 sudo ./bootstrap
 sudo make
 sudo checkinstall -D make install  # or `sudo make install`
