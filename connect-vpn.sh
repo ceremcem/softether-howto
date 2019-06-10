@@ -5,6 +5,7 @@ safe_source () { [[ ! -z ${1:-} ]] && source $1; _dir="$(cd "$(dirname "${BASH_S
 
 # see "killing timeout": https://unix.stackexchange.com/a/57692/65781
 declare -a timeout_pids
+exec 21>&1; exec 22>&2 # backup file descriptors, see https://superuser.com/a/1446738/187576
 my_timeout(){
     local args tp ret
     args="$@"
@@ -112,7 +113,7 @@ cleanup(){
 }
 
 pre_cleanup(){
-    exec &> /dev/tty # see https://superuser.com/q/1446588/187576
+    exec 1>&21; exec 2>&22 # restore file descriptors, see https://superuser.com/a/1446738/187576
     echo "Executing pre-cleanup..."
     for i in "${timeout_pids[*]}"; do
         if [[ ! -z $i ]]; then
