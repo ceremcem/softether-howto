@@ -45,10 +45,14 @@ is_internet_reachable() {
 }
 
 
-INSTALL_DIR="$_sdir/../vpnclient"
+if command -v vpnclient > /dev/null; then
+    INSTALL_DIR=
+else
+    INSTALL_DIR="$_sdir/../vpnclient/"
+fi
 
-VPN_CMD="nudo $INSTALL_DIR/vpncmd localhost /client /cmd"
-VPN_CLIENT="$INSTALL_DIR/vpnclient"
+VPN_CMD="nudo ${INSTALL_DIR}vpncmd localhost /client /cmd"
+VPN_CLIENT="${INSTALL_DIR}vpnclient"
 
 cfg="${1:-}"
 
