@@ -107,6 +107,7 @@ if ip address show dev $PRODUCED_NIC_NAME &> /dev/null; then
 else
     echo "+ Creating NIC: \"$NIC_NAME\"..."
     $VPN_CMD NicCreate $NIC_NAME > /dev/null
+    [[ $? -eq 0 ]] || { echo "!!! Failed to create New Virtual Network Adapter"; exit 5; }
 fi
 
 # Create the account
