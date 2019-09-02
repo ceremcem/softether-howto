@@ -93,6 +93,8 @@ echo "Using configuration file: $cfg"
 LOCAL_GATEWAY_IP=
 PRODUCED_NIC_NAME="vpn_${NIC_NAME}"
 
+routing_table_altered=false
+
 
 get_vpn_ip(){
     ip address show $PRODUCED_NIC_NAME | grep "inet\W" | awk '{print $2}' | cut -d/ -f1
@@ -104,6 +106,7 @@ is_gateway_reachable(){
 
 
 cleanup(){
+    [[ $routing_table_altered == false ]] && return 0;
     echo "-----------------------------------------"
     echo "Restoring previous routing table settings"
     ip route del $SERVER_IP/32
@@ -178,6 +181,7 @@ for i in ${ifaces[@]}; do
 done
 
 reconnect_to_vpn(){
+    routing_table_altered=true
     while :; do
         LOCAL_GATEWAY_IP="$(ip route | grep default | awk '{print $3}' | head -n1)"
         if [[ -z $LOCAL_GATEWAY_IP ]]; then
