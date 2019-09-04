@@ -70,6 +70,7 @@ if command -v vpnclient > /dev/null; then
     INSTALL_DIR=
 else
     INSTALL_DIR="$_sdir/../vpnclient/"
+    [[ -d $INSTALL_DIR ]] || { echo "SoftEther client not found."; exit 5; }
 fi
 
 VPN_CMD="nudo ${INSTALL_DIR}vpncmd localhost /client /cmd"
